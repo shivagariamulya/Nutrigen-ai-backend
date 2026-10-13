@@ -170,7 +170,7 @@ public class MealController {
           @RequestParam(defaultValue = "7") int days) {
 
    UserProfile user = users.findById(id)
-           .orElseThrow(() -> new RuntimeException("User not found"));
+           .orElseThrow(() -> new RuntimeException("User not found: " + id));
 
    LocalDate to = LocalDate.now();
    LocalDate from = to.minusDays(days - 1);
@@ -198,8 +198,12 @@ public class MealController {
 
    Map<LocalDate, List<Meal>> byDate = new HashMap<>();
    for (Meal m : mealList) {
-       if (m.getMealDate() != null) {
-           byDate.computeIfAbsent(m.getMealDate(), k -> new java.util.ArrayList<>()).add(m);
+       LocalDate d = m.getMealDate();
+       if (d == null && m.getCreatedAt() != null) {
+           d = m.getCreatedAt().toLocalDate();
+       }
+       if (d != null) {
+           byDate.computeIfAbsent(d, k -> new java.util.ArrayList<>()).add(m);
        }
    }
 
@@ -217,10 +221,10 @@ public class MealController {
        LocalDate date = to.minusDays(i);
        List<Meal> dayMeals = byDate.getOrDefault(date, List.of());
 
-       double dayCal = dayMeals.stream().mapToDouble(Meal::getCalories).sum();
-       double dayProt = dayMeals.stream().mapToDouble(Meal::getProtein).sum();
-       double dayCarb = dayMeals.stream().mapToDouble(Meal::getCarbohydrates).sum();
-       double dayFat = dayMeals.stream().mapToDouble(Meal::getFats).sum();
+       double dayCal = dayMeals.stream().mapToDouble(m -> m.getCalories() != null ? m.getCalories() : 0.0).sum();
+       double dayProt = dayMeals.stream().mapToDouble(m -> m.getProtein() != null ? m.getProtein() : 0.0).sum();
+       double dayCarb = dayMeals.stream().mapToDouble(m -> m.getCarbohydrates() != null ? m.getCarbohydrates() : 0.0).sum();
+       double dayFat = dayMeals.stream().mapToDouble(m -> m.getFats() != null ? m.getFats() : 0.0).sum();
 
        totalCalories += dayCal;
        totalProtein += dayProt;
@@ -254,8 +258,17 @@ public class MealController {
    double totalBurned = dailyBurn * days;
    double netPeriodCalories = totalCalories - totalBurned;
 
+   double protCal = totalProtein * 4;
+   double carbCal = totalCarbs * 4;
+   double fatCal = totalFats * 9;
+   double macroCalSum = protCal + carbCal + fatCal;
+
+   int protPct = macroCalSum > 0 ? (int) Math.round((protCal / macroCalSum) * 100) : 0;
+   int carbPct = macroCalSum > 0 ? (int) Math.round((carbCal / macroCalSum) * 100) : 0;
+   int fatPct = macroCalSum > 0 ? Math.max(0, 100 - protPct - carbPct) : 0;
+
    Map<String, Object> report = new HashMap<>();
-   report.put("period", days <= 7 ? "WEEKLY" : "MONTHLY");
+   report.put("period", days <= 7 ? "WEEKLY" : (days <= 14 ? "BI_WEEKLY" : "MONTHLY"));
    report.put("days", days);
    report.put("from", from.toString());
    report.put("to", to.toString());
@@ -273,6 +286,10 @@ public class MealController {
    report.put("avgDailyCarbs", Math.round(totalCarbs / days));
    report.put("totalFats", Math.round(totalFats));
    report.put("avgDailyFats", Math.round(totalFats / days));
+
+   report.put("proteinPct", protPct);
+   report.put("carbsPct", carbPct);
+   report.put("fatsPct", fatPct);
 
    report.put("daysTracked", daysWithMeals);
    report.put("onTrackDays", onTrackDays);
