@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: nutrigen-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: nutrigen
+      MYSQL_USER: nutrigen
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - nutrigen_mysql:/var/lib/mysql
+volumes:
+  nutrigen_mysql:
