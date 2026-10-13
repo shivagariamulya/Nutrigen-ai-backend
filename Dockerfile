@@ -3,13 +3,10 @@
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copy pom.xml and pre-fetch dependencies for Docker cache optimization
+# Copy project files and build the production JAR
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
-# Copy project source code and build the production JAR
 COPY src ./src
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -DskipTests -Dmaven.wagon.http.retryHandler.count=3 -B
 
 # Stage 2: Lightweight runtime container
 FROM eclipse-temurin:17-jre-jammy
