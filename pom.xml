@@ -55,6 +55,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- PostgreSQL (for Render native 1-click database) -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
     <!-- Testing -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
